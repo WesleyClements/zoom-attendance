@@ -1,5 +1,7 @@
 (() => {
   const EXPECTED_HEADERS = ['userName', 'userEmail', 'joinTime', 'leaveTime', 'duration', 'attentivenessScore'];
+  const DISPLAYED_HEADERS = ["#", "Name", "Joined At", "Left At", "Duration (Minutes)"];
+  const DISPLAYED_COLUMNS = ['userName', 'joinTime', 'leaveTime', 'duration'];
 
   const inputFormEl = document.querySelector("form");
 
@@ -42,15 +44,22 @@
         .join("")
       );
 
+    if (!EXPECTED_HEADERS.every((header, i) => header === headers[i])) {
+      throw new Error("unrecognized headers");
+    }
+
     const entries = lines
       .map((line) => line.split(","))
       .map((row) => Object.fromEntries(
         headers.map((header, i) => [header, row[i]])
       ));
 
-    if (!EXPECTED_HEADERS.every((header, i) => header === headers[i])) {
-      throw new Error("unrecognized headers");
-    }
+    entries.forEach((entry) => {
+      entry.userName = entry.userName
+        .split(" ")
+        .map((name) => name.replace(/#/g, ""))
+        .join(" ");
+    });
 
     const filteredEntries = new Map();
     entries.forEach((entry) => {
@@ -73,6 +82,8 @@
         .reduce((sum, duration) => sum + duration, 0)
     }));
 
+    summaries.sort((a, b) => a.userName.localeCompare(b.userName));
+
     const outputEl = getOutputEl();
 
     const tableEl = document.createElement("table");
@@ -82,29 +93,29 @@
     const headerRowEl = document.createElement("tr");
 
     headerRowEl.append(
-      ...headers
-        .slice(0, -1)
-        .map((header) => {
-          const tableHeaderEl = document.createElement("th");
-          tableHeaderEl.scope = "col";
-          tableHeaderEl.textContent = header;
-          return tableHeaderEl;
-        })
+      ...DISPLAYED_HEADERS.map((header) => {
+        const tableHeaderEl = document.createElement("th");
+        tableHeaderEl.scope = "col";
+        tableHeaderEl.textContent = header;
+        return tableHeaderEl;
+      })
     );
     tableHeadEl.appendChild(headerRowEl);
 
     const tableBodyEl = document.createElement("tbody");
     tableBodyEl.append(
-      ...summaries.map((summary) => {
+      ...summaries.map((summary, i) => {
         const tableRowEl = document.createElement("tr");
+        const tableHeaderEl = document.createElement("th");
+        tableHeaderEl.textContent = i.toString();
+        tableHeaderEl.scope = "row";
         tableRowEl.append(
-          ...headers
-            .slice(0, -1)
-            .map((header) => {
-              const tableDataEl = document.createElement("td");
-              tableDataEl.textContent = summary[header];
-              return tableDataEl;
-            })
+          tableHeaderEl,
+          ...DISPLAYED_COLUMNS.map((header) => {
+            const tableDataEl = document.createElement("td");
+            tableDataEl.textContent = summary[header];
+            return tableDataEl;
+          })
         );
         return tableRowEl;
       })
