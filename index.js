@@ -5,7 +5,59 @@
 
   const inputFormEl = document.querySelector("form");
 
+  if (!inputFormEl) {
+    throw new Error("no input form");
+  }
+
+  /** @type {HTMLInputElement | null} */
+  const fileInputEl = inputFormEl.querySelector("input[name=\"csvFile\"]");
+  const errorEl = inputFormEl.querySelector("input[name=\"csvFile\"] + .invalid-feedback");
+
+  if (!fileInputEl) {
+    throw new Error("no file input");
+  }
+  if (!errorEl) {
+    throw new Error("no file input error");
+  }
+
   const capitalize = (word) => word.charAt(0).toUpperCase() + word.substring(1);
+
+  const parseCSV = async (file) => {
+    if (!(file instanceof File)) {
+      throw new Error("invalid form data");
+    }
+    if (!file.name.endsWith(".csv")) {
+      throw new Error("File must be .csv");
+    }
+
+    const text = await file.text();
+    const lines = text.split(/\r\n|\n/m);
+    return {
+      headers: (lines.shift() || "")
+        .split(",")
+        .map((header) => header
+          .split(" ")
+          .map((word) => word.split("(")[0])
+          .map((word, i) => i ? capitalize(word) : word.toLowerCase())
+          .join("")
+        ),
+      lines
+    };
+  };
+
+  const collectByKey = (array, keyMapper) => {
+    const map = new Map();
+    array.forEach((item, i) => {
+      const key = keyMapper(item, i);
+      if (!key) return;
+      if (map.has(key)) {
+        map.get(key).push(item);
+      } else {
+        map.set(key, [item]);
+      }
+    });
+    return map;
+  };
 
   const getOutputEl = () => {
     const existingEl = document.querySelector("#output");
@@ -16,74 +68,7 @@
     return newEl;
   };
 
-  if (!inputFormEl) {
-    throw new Error("no input form");
-  }
-
-  inputFormEl.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const formData = new FormData(inputFormEl);
-
-    const file = formData.get("csvFile");
-    if (!(file instanceof File)) {
-      throw new Error("invalid form data");
-    }
-    if (!file.name.endsWith(".csv")) {
-      throw new Error("file must be a csv file");
-    }
-    const text = await file.text();
-
-    const lines = text.split(/\r\n|\n/m);
-    const headers = (lines.shift() || "")
-      .split(",")
-      .map((header) => header
-        .split(" ")
-        .map((word) => word.split("(")[0])
-        .map((word, i) => i ? capitalize(word) : word.toLowerCase())
-        .join("")
-      );
-
-    if (!EXPECTED_HEADERS.every((header, i) => header === headers[i])) {
-      throw new Error("unrecognized headers");
-    }
-
-    const entries = lines
-      .map((line) => line.split(","))
-      .map((row) => Object.fromEntries(
-        headers.map((header, i) => [header, row[i]])
-      ));
-
-    entries.forEach((entry) => {
-      entry.userName = entry.userName
-        .split(" ")
-        .map((name) => name.replace(/#/g, ""))
-        .join(" ");
-    });
-
-    const filteredEntries = new Map();
-    entries.forEach((entry) => {
-      const id = entry.userEmail || entry.userName;
-      if (!id) return;
-      if (filteredEntries.has(id)) {
-        filteredEntries.get(id).push(entry);
-      } else {
-        filteredEntries.set(id, [entry]);
-      }
-    });
-
-    const summaries = [...filteredEntries].map(([, entries]) => ({
-      userName: entries.find((entry) => entry.userName)?.userName,
-      userEmail: entries.find((entry) => entry.userEmail)?.userEmail,
-      joinTime: new Date(Math.min(...entries.map((entry) => new Date(entry.joinTime).getTime()))).toLocaleString(),
-      leaveTime: new Date(Math.max(...entries.map((entry) => new Date(entry.leaveTime).getTime()))).toLocaleString(),
-      duration: entries
-        .map((entry) => Number.parseFloat(entry.duration))
-        .reduce((sum, duration) => sum + duration, 0)
-    }));
-
-    summaries.sort((a, b) => a.userName.localeCompare(b.userName));
-
+  const displaySummaries = (summaries) => {
     const outputEl = getOutputEl();
 
     const tableEl = document.createElement("table");
@@ -100,6 +85,7 @@
         return tableHeaderEl;
       })
     );
+
     tableHeadEl.appendChild(headerRowEl);
 
     const tableBodyEl = document.createElement("tbody");
@@ -125,5 +111,69 @@
 
     outputEl.innerHTML = "";
     outputEl.appendChild(tableEl);
+  };
+
+  fileInputEl?.addEventListener("change", () => {
+    fileInputEl.setCustomValidity("");
+  });
+  inputFormEl.addEventListener("change", () => {
+    inputFormEl.classList.remove('was-validated');
+  });
+
+  inputFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    try {
+
+      const formData = new FormData(inputFormEl);
+
+      const { headers, lines } = await parseCSV(formData.get("csvFile"));
+
+      if (!EXPECTED_HEADERS.every((header, i) => header === headers[i])) {
+        throw new Error("Unrecognized headers");
+      }
+      const entries = lines
+        .map((line) => line.split(","))
+        .map((row) => Object.fromEntries(
+          headers.map((header, i) => [header, row[i]])
+        ));
+
+      entries.forEach((entry) => {
+        entry.userName = entry.userName
+          .split(" ")
+          .map((name) => name.replace(/#/g, ""))
+          .join(" ");
+      });
+
+      const summaries = Array.from(
+        collectByKey(entries, (entry) => entry.userEmail || entry.userName).values()
+      )
+        .map((entries) => ({
+          userName: entries.find((entry) => entry.userName)?.userName,
+          userEmail: entries.find((entry) => entry.userEmail)?.userEmail,
+          joinTime: new Date(Math.min(...entries.map((entry) => new Date(entry.joinTime).getTime()))).toLocaleString(),
+          leaveTime: new Date(Math.max(...entries.map((entry) => new Date(entry.leaveTime).getTime()))).toLocaleString(),
+          duration: entries
+            .map((entry) => Number.parseFloat(entry.duration))
+            .reduce((sum, duration) => sum + duration, 0)
+        }));
+
+      summaries.sort((a, b) => {
+        const aDipped = a.duration < 60;
+        const bDipped = b.duration < 60;
+        if (aDipped && bDipped || !aDipped && !bDipped) return a.userName.localeCompare(b.userName);
+        if (aDipped) return -1;
+        else return 1;
+      });
+
+      displaySummaries(summaries);
+    } catch (error) {
+      if (error.message) {
+        fileInputEl.setCustomValidity(error.message);
+        errorEl.textContent = error.message;
+      }
+    }
+
+    inputFormEl.classList.add('was-validated');
   });
 })();
