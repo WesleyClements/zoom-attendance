@@ -3,6 +3,8 @@
   const DISPLAYED_HEADERS = ["#", "Name", "Joined At", "Left At", "Duration (Minutes)"];
   const DISPLAYED_COLUMNS = ['userName', 'joinTime', 'leaveTime', 'duration'];
 
+  const KEY_SEPARATORS = [" ", "."];
+
   const inputFormEl = document.querySelector("form");
 
   if (!inputFormEl) {
@@ -45,15 +47,47 @@
     };
   };
 
+  /**
+   * @param {string} key 
+   * @returns 
+   */
+  const splitKey = (key) => KEY_SEPARATORS
+    .map((separator) => key.split(separator))
+    .find((array) => array.length === 2)
+    || [key];
+
+  /**
+   * @param {Set<string>} set 
+   * @param {string} value
+   */
+  const getPermutation = (set, value) => {
+    if (set.has(value)) {
+      return value;
+    }
+    const parts = splitKey(value);
+    return Array
+      .from(
+        { length: parts.length },
+        (_, i) => [...parts.slice(i), ...parts.slice(0, i)]
+      )
+      .flatMap((permutation) => KEY_SEPARATORS
+        .map((separator) => permutation.join(separator))
+      )
+      .find((key) => set.has(key));
+  };
+
   const collectByKey = (array, keyMapper) => {
+    const keySet = new Set();
     const map = new Map();
     array.forEach((item, i) => {
       const key = keyMapper(item, i);
       if (!key) return;
-      if (map.has(key)) {
-        map.get(key).push(item);
+      const uniqueKey = getPermutation(keySet, key) || key;
+      if (map.has(uniqueKey)) {
+        map.get(uniqueKey).push(item);
       } else {
-        map.set(key, [item]);
+        map.set(uniqueKey, [item]);
+        keySet.add(uniqueKey);
       }
     });
     return map;
