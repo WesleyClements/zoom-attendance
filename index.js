@@ -5,6 +5,14 @@
 
   const KEY_SEPARATORS = [" ", "."];
 
+  const IGNORED_NAMES_KEY = "ignoredNames";
+
+  const ignoredNames = JSON.parse(localStorage.getItem(IGNORED_NAMES_KEY) || "null") ?? [];
+
+  if (!Array.isArray(ignoredNames)) {
+    throw new Error("ignoredNames not an array");
+  }
+
   const inputFormEl = document.querySelector("form");
 
   if (!inputFormEl) {
@@ -13,14 +21,84 @@
 
   /** @type {HTMLInputElement | null} */
   const fileInputEl = inputFormEl.querySelector("input[name=\"csvFile\"]");
+  /** @type {HTMLDivElement | null} */
+  const ignoredNamesEl = inputFormEl.querySelector("#ignored-names div");
+  /** @type {HTMLButtonElement | null} */
+  const addIgnoredNameButtonEl = inputFormEl.querySelector("#ignored-names button");
   const errorEl = inputFormEl.querySelector("input[name=\"csvFile\"] + .invalid-feedback");
 
   if (!fileInputEl) {
     throw new Error("no file input");
   }
+  if (!ignoredNamesEl) {
+    throw new Error("no ignored names div");
+  }
+  if (!addIgnoredNameButtonEl) {
+    throw new Error("no add ignored names button");
+  }
   if (!errorEl) {
     throw new Error("no file input error");
   }
+
+  const addIgnoredName = (value) => {
+    const index = ignoredNames.length;
+    ignoredNames.push(value);
+    localStorage.setItem(IGNORED_NAMES_KEY, JSON.stringify(ignoredNames));
+    return index;
+  };
+
+  const removeIgnoredName = (index) => {
+    ignoredNames.splice(index, 1);
+    localStorage.setItem(IGNORED_NAMES_KEY, JSON.stringify(ignoredNames));
+  };
+
+  const setIgnoredName = (index, value) => {
+    ignoredNames[index] = value;
+    localStorage.setItem(IGNORED_NAMES_KEY, JSON.stringify(ignoredNames));
+  };
+
+  const debounce = (func, timeout) => {
+    let handle;
+    return (...args) => {
+      clearTimeout(handle);
+      setTimeout(() => {
+        func(...args);
+      }, timeout);
+    };
+  };
+
+  /**
+   * @param {number} index 
+   * @param {string} value 
+   */
+  const createIgnoredNameInput = (index, value) => {
+    const wrapperEl = document.createElement("div");
+    wrapperEl.classList.add("input-group", "mb-1");
+    const inputEl = document.createElement("input");
+    inputEl.classList.add("form-control");
+    inputEl.value = value || "";
+    inputEl.addEventListener(
+      "input", debounce(
+        () => {
+          setIgnoredName(index, inputEl.value);
+        },
+        100
+      )
+    );
+    const buttonWrapper = document.createElement("div");
+    buttonWrapper.classList.add("input-group-append");
+    const removeButton = document.createElement("button");
+    removeButton.classList.add("btn", "btn-outline-danger");
+    removeButton.type = "button";
+    removeButton.addEventListener("click", () => {
+      ignoredNamesEl.removeChild(wrapperEl);
+      removeIgnoredName(index);
+    });
+    removeButton.textContent = "X";
+    buttonWrapper.appendChild(removeButton);
+    wrapperEl.append(inputEl, buttonWrapper);
+    return wrapperEl;
+  };
 
   const capitalize = (word) => word.charAt(0).toUpperCase() + word.substring(1);
 
@@ -147,13 +225,24 @@
     outputEl.appendChild(tableEl);
   };
 
+  ignoredNamesEl.append(
+    ...ignoredNames.map(
+      (ignoredName, i) => createIgnoredNameInput(i, ignoredName)
+    )
+  );
+
   fileInputEl?.addEventListener("change", () => {
     fileInputEl.setCustomValidity("");
   });
+
+  addIgnoredNameButtonEl.addEventListener("click", () => {
+    const index = addIgnoredName("");
+    ignoredNamesEl.appendChild(createIgnoredNameInput(index, ""));
+  });
+
   inputFormEl.addEventListener("change", () => {
     inputFormEl.classList.remove('was-validated');
   });
-
   inputFormEl.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -179,6 +268,9 @@
           .join(" ");
       });
 
+      const ignoredNamesTests = ignoredNames
+        .map((ignoredName) => new RegExp(ignoredName, "i"));
+
       const summaries = Array.from(
         collectByKey(entries, (entry) => entry.userEmail || entry.userName).values()
       )
@@ -190,7 +282,8 @@
           duration: entries
             .map((entry) => Number.parseFloat(entry.duration))
             .reduce((sum, duration) => sum + duration, 0)
-        }));
+        }))
+        .filter(({ userName }) => !ignoredNamesTests.some((regex) => regex.test(userName)));
 
       summaries.sort((a, b) => {
         const aDipped = a.duration < 60;
