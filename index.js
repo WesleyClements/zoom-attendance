@@ -255,7 +255,9 @@ const markPresent = () => {
           }
           const partialMatch = names.some((test) => test.test(name))
           if (partialMatch) {
-            console.log(presentStudents[i], name)
+            console.log("partial match", presentStudents[i], name)
+          } else {
+            console.log("no match", name)
           }
           return false;
         })
