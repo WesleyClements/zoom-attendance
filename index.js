@@ -180,9 +180,7 @@
     return newEl;
   };
 
-  const displaySummaries = (summaries) => {
-    const outputEl = getOutputEl();
-
+  const createSummaryTable = (summaries) => {
     const tableEl = document.createElement("table");
     tableEl.classList.add("table", "table-striped");
 
@@ -220,9 +218,7 @@
     );
 
     tableEl.append(tableHeadEl, tableBodyEl);
-
-    outputEl.innerHTML = "";
-    outputEl.appendChild(tableEl);
+    return tableEl;
   };
 
   const generateMarkingScript = (summaries) => `
@@ -345,13 +341,12 @@ const markAbsent = () => {
         if (aDipped) return -1;
         else return 1;
       });
-
-      displaySummaries(summaries);
-
       const outputEl = getOutputEl();
+      outputEl.innerHTML = "";
+
       const jsOutput = document.createElement("pre");
       jsOutput.textContent = generateMarkingScript(summaries);
-      outputEl.append(jsOutput);
+      outputEl.append(createSummaryTable(summaries), jsOutput);
     } catch (error) {
       if (error.message) {
         fileInputEl.setCustomValidity(error.message);
