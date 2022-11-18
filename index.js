@@ -344,9 +344,14 @@ const markAbsent = () => {
       const outputEl = getOutputEl();
       outputEl.innerHTML = "";
 
-      const jsOutput = document.createElement("pre");
-      jsOutput.textContent = generateMarkingScript(summaries);
-      outputEl.append(createSummaryTable(summaries), jsOutput);
+      const jsOutputButtonEl = document.createElement("button");
+      jsOutputButtonEl.classList.add("btn", "btn-success");
+      jsOutputButtonEl.textContent = "Copy Script";
+      jsOutputButtonEl.addEventListener("click", () => {
+        navigator.clipboard?.writeText(generateMarkingScript(summaries));
+      });
+
+      outputEl.append(jsOutputButtonEl, createSummaryTable(summaries));
     } catch (error) {
       if (error.message) {
         fileInputEl.setCustomValidity(error.message);
