@@ -76,6 +76,7 @@
     wrapperEl.classList.add("input-group", "mb-1");
     const inputEl = document.createElement("input");
     inputEl.classList.add("form-control");
+    inputEl.required = true;
     inputEl.value = value || "";
     inputEl.addEventListener(
       "input", debounce(
