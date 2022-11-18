@@ -3,7 +3,7 @@
   const DISPLAYED_HEADERS = ["#", "Name", "Joined At", "Left At", "Duration (Minutes)"];
   const DISPLAYED_COLUMNS = ['userName', 'joinTime', 'leaveTime', 'duration'];
 
-  const KEY_SEPARATORS = [" ", "."];
+  const KEY_SEPARATORS = [" ", ".", "-"];
 
   const IGNORED_NAMES_KEY = "ignoredNames";
 
@@ -225,6 +225,57 @@
     outputEl.appendChild(tableEl);
   };
 
+  const generateMarkingScript = (summaries) => `
+const presentStudents = ${JSON.stringify(summaries.map(({ userName }) => splitKey(userName)))};
+const nameTests = presentStudents.map((names) => names.map((name) => new RegExp(name, "i")));
+const getAttendanceElements = () => 
+  Array.from(document.querySelectorAll(".student-details-list .row:has(a)"))
+  .map((row) => [row.querySelector("a"), row.querySelector(".dropdown")])
+  .map(([nameLink, dropdown]) => {
+    const name = nameLink.textContent;
+    const options = Array.from(dropdown.querySelectorAll("[role=\\"option\\"] .text"));
+    const presentOption = options.find((option) => option.textContent === "Present")
+    const absentOption = options.find((option) => option.textContent === "Absent")
+    const selectedOption = dropdown.querySelector("[role=\\"option\\"][class~=\\"active\\"] .text")
+    return {
+      name,
+      dropdown,
+      presentOption,
+      absentOption,
+      selectedOption: selectedOption.textContent
+    }
+  })
+const markPresent = () => {
+  getAttendanceElements()
+    .filter(({name}) => nameTests
+        .find((names, i) => {
+          const perfectMatch = names.every((test) => test.test(name))
+          if (perfectMatch) {
+            return true;
+          }
+          const partialMatch = names.some((test) => test.test(name))
+          if (partialMatch) {
+            console.log(presentStudents[i], name)
+          }
+          return false;
+        })
+    )
+    .forEach(({dropdown, presentOption}) => {
+      dropdown.click();
+      presentOption.click();
+    })
+}
+
+const markAbsent = () => {
+  getAttendanceElements()
+    .filter(({name, selectedOption}) => (console.log(name, selectedOption), selectedOption === "None"))
+    .forEach(({dropdown, absentOption}) => {
+      console.log("Hey")
+      dropdown.click();
+      absentOption.click();
+    })
+}`;
+
   ignoredNamesEl.append(
     ...ignoredNames.map(
       (ignoredName, i) => createIgnoredNameInput(i, ignoredName)
@@ -294,6 +345,11 @@
       });
 
       displaySummaries(summaries);
+
+      const outputEl = getOutputEl();
+      const jsOutput = document.createElement("pre");
+      jsOutput.textContent = generateMarkingScript(summaries);
+      outputEl.append(jsOutput);
     } catch (error) {
       if (error.message) {
         fileInputEl.setCustomValidity(error.message);
