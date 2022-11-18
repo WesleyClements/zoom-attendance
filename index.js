@@ -318,6 +318,7 @@ const markAbsent = () => {
       });
 
       const ignoredNamesTests = ignoredNames
+        .filter(Boolean)
         .map((ignoredName) => new RegExp(ignoredName, "i"));
 
       const summaries = Array.from(
