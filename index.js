@@ -278,10 +278,11 @@
             return false;
           });
         if (!exists) {
-          console.warn(name, "not present");
+          const warn = [name, "not present in zoom"];
           partialMatches.forEach(partialMatch => {
-            console.log("partial match", partialMatch);
+            warn.push("\\n - partial match", partialMatch);
           });
+          console.warn(...warn);
         }
         return exists;
       })
