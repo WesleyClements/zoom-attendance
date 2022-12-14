@@ -254,10 +254,10 @@
       .map((row) => [row.querySelector("a"), row.querySelector(".dropdown")])
       .map(([nameLink, dropdown]) => {
         const name = nameLink.textContent;
-        const options = Array.from(dropdown.querySelectorAll("[role=\\"option\\"] .text"));
+        const options = Array.from(dropdown.querySelectorAll(\`[role="option"] .text\`));
         const presentOption = options.find((option) => option.textContent === "Present");
         const absentOption = options.find((option) => option.textContent === "Absent");
-        const selectedOption = dropdown.querySelector("[role=\\"option\\"][class~=\\"active\\"] .text");
+        const selectedOption = dropdown.querySelector(\`[role="option"][class~="active"] .text\`);
         return {
           name,
           dropdown,
@@ -268,6 +268,14 @@
       });
 
   const markPresent = () => {
+    concernDiv.innerHTML = \`<div class="row student-details-header">
+      <div class="nine wide column">
+        <h3>Missing Student</h3>
+      </div>
+      <div class="seven wide column">
+        <h3>Partial Name Matches</h3>
+      </div>
+    </div>\`;
     getAttendanceElements()
       .filter(({ name }) => {
         const partialMatches = []
@@ -284,11 +292,22 @@
             return false;
           });
         if (!exists) {
-          const warn = [name, "not present in zoom"];
-          partialMatches.forEach(partialMatch => {
-            warn.push("\\n - partial match", partialMatch);
-          });
-          console.warn(...warn);
+          const wrapperEl = document.createElement("div")
+          wrapperEl.classList.add("row")
+          const headerEl = document.createElement("h4")
+          headerEl.classList.add("column", "nine", "wide")
+          headerEl.textContent = name
+          const partialMatchListEl = document.createElement("ul")
+          partialMatchListEl.classList.add("column", "seven", "wide")
+          partialMatchListEl.append(
+            ...partialMatches.map(partialMatch => {
+              const li = document.createElement("li");
+              li.textContent = partialMatch.join(", ");
+              return li;
+            })
+          )
+          wrapperEl.append(headerEl, partialMatchListEl)
+          concernDiv.append(wrapperEl)
         }
         return exists;
       })
@@ -324,13 +343,15 @@
   const presentButton = createButton("Mark Present");
   const absentButton = createButton("Mark None as Absent");
   const markAllAbsentButton = createButton("Mark All as Absent");
+  const concernDiv = document.createElement("div");
+  concernDiv.classList.add("ui", "grid")
 
   presentButton.addEventListener("click", markPresent);
   absentButton.addEventListener("click", markNoneAsAbsent);
   markAllAbsentButton.addEventListener("click", markAllAbsent);
 
   injectedDiv.innerHTML = ""
-  injectedDiv.append(presentButton, absentButton, markAllAbsentButton);
+  injectedDiv.append(presentButton, absentButton, markAllAbsentButton, concernDiv);
 })();`;
 
   ignoredNamesEl.append(
