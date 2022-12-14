@@ -132,7 +132,7 @@
    */
   const splitKey = (key) => KEY_SEPARATORS
     .map((separator) => key.split(separator))
-    .find((array) => array.length === 2)
+    .find((array) => array.length > 1)
     || [key];
 
   /**
