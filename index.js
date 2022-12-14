@@ -249,12 +249,16 @@
     });
   };
 
+  const resetScroll = () => {
+    document.documentElement.scrollTop = 0;
+  };
+
   const getAttendanceElements = () =>
     Array.from(document.querySelectorAll(".student-details-list .row:has(a)"))
       .map((row) => [row.querySelector("a"), row.querySelector(".dropdown")])
       .map(([nameLink, dropdown]) => {
         const name = nameLink.textContent;
-        const options = Array.from(dropdown.querySelectorAll(\`[role="option"].text\`));
+        const options = Array.from(dropdown.querySelectorAll(\`[role="option"] .text\`));
         const presentOption = options.find((option) => option.textContent === "Present");
         const absentOption = options.find((option) => option.textContent === "Absent");
         const selectedOption = dropdown.querySelector(\`[role="option"][class~="active"] .text\`);
@@ -277,28 +281,25 @@
       </div>
     </div>\`;
     getAttendanceElements()
-      .filter(({ name }) => {
-        const partialMatches = [];
-        const exists = nameTests
-          .find((names, i) => {
-            const perfectMatch = names.every((test) => test.test(name));
-            if (perfectMatch) {
-              return true;
-            }
-            const partialMatch = names.some((test) => test.test(name));
-            if (partialMatch) {
-              partialMatches.push(presentStudents[i]);
-            }
-            return false;
-          });
-        if (!exists) {
-          const wrapperEl = document.createElement("div");
-          wrapperEl.classList.add("row");
-          const headerEl = document.createElement("h4");
-          headerEl.classList.add("column", "nine", "wide");
-          headerEl.textContent = name;
+      .filter(({ name, dropdown, presentOption }) => {
+        const exists = Boolean(nameTests.find((names) => names.every((test) => test.test(name))));
+        if (exists) {
+          return true;
+        }
+        const partialMatches = nameTests
+          .map((names) => names.some((test) => test.test(name)))
+          .map((partiallyMatched, i) => partiallyMatched && presentStudents[i])
+          .filter(Boolean);
+        const wrapperEl = document.createElement("div");
+        wrapperEl.classList.add("row");
+        const headerEl = document.createElement("h4");
+        headerEl.classList.add("column");
+        headerEl.textContent = name;
+        wrapperEl.append(headerEl);
+        if (partialMatches.length) {
+          headerEl.classList.add("six", "wide");
           const partialMatchListEl = document.createElement("ul");
-          partialMatchListEl.classList.add("column", "seven", "wide");
+          partialMatchListEl.classList.add("column", "six", "wide");
           partialMatchListEl.append(
             ...partialMatches.map(partialMatch => {
               const li = document.createElement("li");
@@ -306,15 +307,24 @@
               return li;
             })
           );
-          wrapperEl.append(headerEl, partialMatchListEl);
-          concernDiv.append(wrapperEl);
+          const buttonWrapper = document.createElement("div");
+          const presentButton = createButton("Mark Present");
+          presentButton.classList.add("column", "four", "wide");
+          presentButton.addEventListener("click", () => {
+            dropdown.click();
+            presentOption.click();
+            resetScroll();
+            clearClicks();
+          });
+          buttonWrapper.append(presentButton);
+          wrapperEl.append(partialMatchListEl, buttonWrapper);
         }
-        return exists;
+        concernDiv.append(wrapperEl);
       })
       .forEach(({ dropdown, presentOption }) => {
         dropdown.click();
         presentOption.click();
-        document.documentElement.scrollTop = 0;
+        resetScroll();
         clearClicks();
       });
   };
@@ -325,7 +335,7 @@
       .forEach(({ dropdown, absentOption }) => {
         dropdown.click();
         absentOption.click();
-        document.documentElement.scrollTop = 0;
+        resetScroll();
         clearClicks();
       });
   };
@@ -335,7 +345,7 @@
       .forEach(({ dropdown, absentOption }) => {
         dropdown.click();
         absentOption.click();
-        document.documentElement.scrollTop = 0;
+        resetScroll();
         clearClicks();
       });
   };
