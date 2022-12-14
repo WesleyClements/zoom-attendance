@@ -273,10 +273,10 @@
 
   const markPresent = () => {
     concernDiv.innerHTML = \`<div class="row student-details-header">
-      <div class="nine wide column">
+      <div class="six wide column">
         <h3>Missing Student</h3>
       </div>
-      <div class="seven wide column">
+      <div class="six wide column">
         <h3>Partial Name Matches</h3>
       </div>
     </div>\`;
