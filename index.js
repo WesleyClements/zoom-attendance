@@ -243,6 +243,12 @@
     return button;
   }
 
+  const clearClicks = () => {
+    setTimeout(() => {
+      document.documentElement.click();
+    })
+  }
+
   const getAttendanceElements = () =>
     Array.from(document.querySelectorAll(".student-details-list .row:has(a)"))
       .map((row) => [row.querySelector("a"), row.querySelector(".dropdown")])
@@ -289,6 +295,8 @@
       .forEach(({ dropdown, presentOption }) => {
         dropdown.click();
         presentOption.click();
+        document.documentElement.scrollTop = 0;
+        clearClicks();
       });
   };
 
@@ -298,6 +306,8 @@
       .forEach(({ dropdown, absentOption }) => {
         dropdown.click();
         absentOption.click();
+        document.documentElement.scrollTop = 0;
+        clearClicks();
       });
   };
 
@@ -306,6 +316,8 @@
       .forEach(({ dropdown, absentOption }) => {
         dropdown.click();
         absentOption.click();
+        document.documentElement.scrollTop = 0;
+        clearClicks();
       });
   }
 
