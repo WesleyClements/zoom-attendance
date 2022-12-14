@@ -234,27 +234,27 @@
     div.id = "injected";
     parent.insertBefore(div, form);
     return div;
-  })()
+  })();
 
   const createButton = (text) => {
     const button = document.createElement("button");
     button.className = "ui blue button";
     button.textContent = text;
     return button;
-  }
+  };
 
   const clearClicks = () => {
     setTimeout(() => {
       document.documentElement.click();
-    })
-  }
+    });
+  };
 
   const getAttendanceElements = () =>
     Array.from(document.querySelectorAll(".student-details-list .row:has(a)"))
       .map((row) => [row.querySelector("a"), row.querySelector(".dropdown")])
       .map(([nameLink, dropdown]) => {
         const name = nameLink.textContent;
-        const options = Array.from(dropdown.querySelectorAll(\`[role="option"] .text\`));
+        const options = Array.from(dropdown.querySelectorAll(\`[role="option"].text\`));
         const presentOption = options.find((option) => option.textContent === "Present");
         const absentOption = options.find((option) => option.textContent === "Absent");
         const selectedOption = dropdown.querySelector(\`[role="option"][class~="active"] .text\`);
@@ -278,7 +278,7 @@
     </div>\`;
     getAttendanceElements()
       .filter(({ name }) => {
-        const partialMatches = []
+        const partialMatches = [];
         const exists = nameTests
           .find((names, i) => {
             const perfectMatch = names.every((test) => test.test(name));
@@ -292,22 +292,22 @@
             return false;
           });
         if (!exists) {
-          const wrapperEl = document.createElement("div")
-          wrapperEl.classList.add("row")
-          const headerEl = document.createElement("h4")
-          headerEl.classList.add("column", "nine", "wide")
-          headerEl.textContent = name
-          const partialMatchListEl = document.createElement("ul")
-          partialMatchListEl.classList.add("column", "seven", "wide")
+          const wrapperEl = document.createElement("div");
+          wrapperEl.classList.add("row");
+          const headerEl = document.createElement("h4");
+          headerEl.classList.add("column", "nine", "wide");
+          headerEl.textContent = name;
+          const partialMatchListEl = document.createElement("ul");
+          partialMatchListEl.classList.add("column", "seven", "wide");
           partialMatchListEl.append(
             ...partialMatches.map(partialMatch => {
               const li = document.createElement("li");
               li.textContent = partialMatch.join(", ");
               return li;
             })
-          )
-          wrapperEl.append(headerEl, partialMatchListEl)
-          concernDiv.append(wrapperEl)
+          );
+          wrapperEl.append(headerEl, partialMatchListEl);
+          concernDiv.append(wrapperEl);
         }
         return exists;
       })
@@ -338,19 +338,19 @@
         document.documentElement.scrollTop = 0;
         clearClicks();
       });
-  }
+  };
 
   const presentButton = createButton("Mark Present");
   const absentButton = createButton("Mark None as Absent");
   const markAllAbsentButton = createButton("Mark All as Absent");
   const concernDiv = document.createElement("div");
-  concernDiv.classList.add("ui", "grid")
+  concernDiv.classList.add("ui", "grid");
 
   presentButton.addEventListener("click", markPresent);
   absentButton.addEventListener("click", markNoneAsAbsent);
   markAllAbsentButton.addEventListener("click", markAllAbsent);
 
-  injectedDiv.innerHTML = ""
+  injectedDiv.innerHTML = "";
   injectedDiv.append(presentButton, absentButton, markAllAbsentButton, concernDiv);
 })();`;
 
