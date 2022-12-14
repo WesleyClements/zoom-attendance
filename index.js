@@ -225,7 +225,7 @@
   const generateMarkingScript = (summaries) =>
     `(() => {
   const presentStudents = ${JSON.stringify(summaries.map(({ userName }) => splitKey(userName)))};
-  const nameTests = presentStudents.map((names) => names.map((name) => new RegExp(name, "i")));
+  const nameTests = presentStudents.map((names) => names.map((name) => new RegExp("(?:^|[${KEY_SEPARATORS.join("")}])" + name, "i")));
 
   const injectedDiv = document.querySelector("#injected") ?? (() => {
     const parent = document.querySelector(".session-details-container");
